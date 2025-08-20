@@ -1,61 +1,51 @@
-
-# visualize.py
-import argparse, csv
+import pandas as pd
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-def load_bricks(csv_path):
-    bricks = []
-    with open(csv_path, newline="") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            bricks.append({k:int(row[k]) for k in row})
-    return bricks
+def draw_brick(ax, x, y, z, length, width, height, color):
+    # Define vertices of cuboid
+    vertices = [
+        [x, y, z],
+        [x + length, y, z],
+        [x + length, y + width, z],
+        [x, y + width, z],
+        [x, y, z + height],
+        [x + length, y, z + height],
+        [x + length, y + width, z + height],
+        [x, y + width, z + height]
+    ]
+    faces = [
+        [vertices[0], vertices[1], vertices[2], vertices[3]],
+        [vertices[4], vertices[5], vertices[6], vertices[7]],
+        [vertices[0], vertices[1], vertices[5], vertices[4]],
+        [vertices[2], vertices[3], vertices[7], vertices[6]],
+        [vertices[1], vertices[2], vertices[6], vertices[5]],
+        [vertices[4], vertices[7], vertices[3], vertices[0]]
+    ]
+    ax.add_collection3d(Poly3DCollection(faces, facecolors=color, edgecolors="k", linewidths=0.2))
 
-def plot_top(bricks, save_path):
-    xs = [b["x_mm"] for b in bricks]
-    ys = [b["y_mm"] for b in bricks]
-    lx = [b["lx_mm"] for b in bricks]
-    ly = [b["ly_mm"] for b in bricks]
-    L = max(x+dx for x,dx in zip(xs,lx))
-    W = max(y+dy for y,dy in zip(ys,ly))
+def visualize_bricks(csv_file="bricks.csv", fast=True):
+    df = pd.read_csv(csv_file)
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    for x,y,dx,dy in zip(xs,ys,lx,ly):
-        ax.add_patch(plt.Rectangle((x/1000, y/1000), dx/1000, dy/1000, fill=False))
-    ax.set_aspect('equal', adjustable='box')
-    ax.set_xlim(-0.1, L/1000 + 0.1)
-    ax.set_ylim(-0.1, W/1000 + 0.1)
-    ax.set_xlabel("Length (m)")
-    ax.set_ylabel("Width (m)")
-    ax.set_title("Top View (brick footprints)")
-    fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection="3d")
 
-def plot_side(bricks, save_path):
-    xs = [b["x_mm"] for b in bricks]
-    zs = [b["z_mm"] for b in bricks]
-    lx = [b["lx_mm"] for b in bricks]
-    lz = [b["lz_mm"] for b in bricks]
-    L = max(x+dx for x,dx in zip(xs,lx))
-    H = max(z+dz for z,dz in zip(zs,lz))
+    if fast:
+        # Approximate by scatter instead of drawing every face (for >10k bricks)
+        ax.scatter(df["x"], df["y"], df["z"], c=df["color"], marker="s", s=2)
+    else:
+        for _, row in df.iterrows():
+            draw_brick(ax, row.x, row.y, row.z, row.length, row.width, row.height, row.color)
 
-    fig, ax = plt.subplots(figsize=(10, 4))
-    for x,z,dx,dz in zip(xs,zs,lx,lz):
-        ax.add_patch(plt.Rectangle((x/1000, z/1000), dx/1000, dz/1000, fill=False))
-    ax.set_aspect('equal', adjustable='box')
-    ax.set_xlim(-0.1, L/1000 + 0.1)
-    ax.set_ylim(-0.1, H/1000 + 0.1)
-    ax.set_xlabel("Length (m)")
-    ax.set_ylabel("Height (m)")
-    ax.set_title("Side View (elevation)")
-    fig.savefig(save_path, dpi=200, bbox_inches="tight")
+    # Set limits
+    ax.set_xlim(0, df["x"].max() + df["length"].max())
+    ax.set_ylim(0, df["y"].max() + df["width"].max())
+    ax.set_zlim(0, df["z"].max() + df["height"].max())
+
+    # Add grid lines
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.5)
+
+    plt.show()
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", default="out/bricks.csv")
-    ap.add_argument("--top", default="top_view.png")
-    ap.add_argument("--side", default="side_view.png")
-    args = ap.parse_args()
-    bricks = load_bricks(args.csv)
-    plot_top(bricks, args.top)
-    plot_side(bricks, args.side)
-    print(f"Saved {args.top} and {args.side}")
+    visualize_bricks("bricks.csv", fast=True)
