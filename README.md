@@ -1,32 +1,34 @@
+# Brick Cuboid 100mm 3D Generation and Visualization
 
-# Brick Cuboid Generator (100 mm wall)
+A geometric generation and volumetric visualization pipeline for 3D brick structures. Calculates spatial coordinates, generates structured CSV/JSON point definitions, and renders 3D polygonal projections with Matplotlib.
 
-Generates the **location + orientation** of every brick (200×100×100 mm) to build a **maximum internal-volume** hollow cuboid shell with **wall thickness = 100 mm** using exactly **10,000 bricks**.
+![Top Isometric View](top.png)
 
-## Quick start
+![Side Elevation Projection](side.png)
+
+## Pipeline Overview
+
+1. Coordinate Generation (`main.py`): Generates geometric grid representations for 3D stacked blocks across specified Cartesian axes (`nx`, `ny`, `nz`) with customizable dimension vectors.
+2. Serialization: Outputs structured geometry into `out/bricks.csv` and `out/bricks.json`.
+3. 3D Render Engine (`visualize.py`): Reconstructs 8-vertex bounding cuboids with 6-face polygons and renders isometric perspectives using `mpl_toolkits.mplot3d.art3d.Poly3DCollection`.
+
+## Installation and Execution
+
+### Prerequisites
+
+- Python 3.9+
+- Dependencies: `pandas`, `matplotlib`
+
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install matplotlib
-python main.py --out out                 # writes out/bricks.csv and out/bricks.json
-python visualize.py --csv out/bricks.csv --top top.png --side side.png
+pip install pandas matplotlib
 ```
 
-## Output format
-- **CSV**: `x_mm,y_mm,z_mm,lx_mm,ly_mm,lz_mm` (origin and orientation per brick)
-- **JSON**: metadata + same list
+### Generating Geometry and Visualizations
 
-## Publish to GitHub (public)
-Replace `<USER>` with your GitHub username and run:
 ```bash
-git init
-git add .
-git commit -m "brick cuboid (100mm wall)"
-git branch -M main
-gh repo create <USER>/brick-cuboid-100mm --public --source=. --remote=origin --push
-# or manually:
-# git remote add origin https://github.com/<USER>/brick-cuboid-100mm.git
-# git push -u origin main
-```
+# Generate spatial coordinate dataset
+python main.py
 
-After pushing, submit:
-- **Repo link**: `https://github.com/<USER>/brick-cuboid-100mm`
+# Render 3D isometric and elevation graphics
+python visualize.py
+```
